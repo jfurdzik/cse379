@@ -8,32 +8,32 @@
 	.global gameEnd
 
 
-prompt:	.string 0xA, 0xD, " -------------------------------------------------------------------------------- ", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string "|                                                                                |", 0xA, 0xD
-		.string " -------------------------------------------------------------------------------- ", 0xA, 0xD, 0
+prompt:	.string 0xA, 0xD, 27, "[48;5;248m                                                                                  ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string 27, "[48;5;248m                                                                                  ", 0xA, 0xD, 0
 ;so this is the lab7 game board. should we do what we did with lab6 and just put the ball and the paddles hardcoded in at first?
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
 mydataUART:	.byte	0x20	; This is where you can store data.
@@ -45,6 +45,7 @@ gameEnd: .byte 0x00
 gameOverScreen:	.string 0xC, "GAME OVER", 0
 scorePrompt:	.string "Score: ", 0
 score:	.byte 0x0
+test_ansi:	.string 27, "[41m                                                              ", 0
 
 			; The .byte assembler directive stores a byte
 			; (initialized to 0x20 in this case) at the label
@@ -81,6 +82,7 @@ ptr_to_gameEnd:			.word gameEnd
 ptr_to_gameOverScreen:	.word gameOverScreen
 ptr_to_scorePrompt:		.word scorePrompt
 ptr_to_score:			.word score
+ptr_to_test_ansi:		.word test_ansi
 
 lab7:				; This is your main routine which is called from
 				; your C wrapper.
@@ -88,14 +90,14 @@ lab7:				; This is your main routine which is called from
 begin:
 	;reset everything
 
-	ldr r4, ptr_to_prompt
-	ldr r5, ptr_to_mydataUART
-	MOV r1, #0x20
-	STRB r1, [r5]
 
-	ldr r6, ptr_to_mydataGPIO
-	MOV r1, #0x30
-	STRB r1, [r6]
+	;ldr r5, ptr_to_mydataUART
+	;MOV r1, #0x20
+	;STRB r1, [r5]
+
+	;ldr r6, ptr_to_mydataGPIO
+	;MOV r1, #0x30
+	;STRB r1, [r6]
 
  	bl uart_init
  	BL gpio_btn_and_LED_init
@@ -103,26 +105,31 @@ begin:
 	bl gpio_interrupt_init
 	bl timer_init
 
-lab7_loop:
+	ldr r0, ptr_to_prompt
+
+	;ldr r0, ptr_to_test_ansi
+	bl output_string
+
+;lab7_loop:
 	;check if game is paused
-	ldr r9, ptr_to_isitpaused
-	LDRB r10, [r9]
-	CMP r10, #1
-	BEQ gamePaused
+	;ldr r9, ptr_to_isitpaused
+	;LDRB r10, [r9]
+	;CMP r10, #1
+	;BEQ gamePaused
 
-	ldr r7, ptr_to_gameEnd
-	LDRB r8, [r7]
-	CMP r8, #0
-	BEQ lab7_loop
-	B lab7Done
+	;ldr r7, ptr_to_gameEnd
+	;LDRB r8, [r7]
+	;CMP r8, #0
+	;BEQ lab7_loop
+	;B lab7Done
 
-gamePaused:
+;gamePaused:
 	;loop while game paused else return to lab7 loop
-	ldr r9, ptr_to_isitpaused
-	LDRB r10, [r9]
-	CMP r10, #1
-	BEQ gamePaused
-	B lab7_loop
+	;ldr r9, ptr_to_isitpaused
+	;LDRB r10, [r9]
+	;CMP r10, #1
+	;BEQ gamePaused
+	;B lab7_loop
 
 lab7Done:
 	POP {r4-r12,lr}		; Restore registers to adhere to the AAPCS
@@ -355,11 +362,6 @@ switchDone:
 Timer_Handler:
 	PUSH {r4-r12,lr} ; Spill registers to stack
 
-	ldr r4, ptr_to_isitpaused
-	ldrb r5, [r4]
-	CMP r5, #1
-	BEQ end
-
 	;clear interrupt via GPTMICR
 	MOV r0, #0x0000			;base address of timer 0
 	MOVT r0, #0x4003		;address of GPTMICR
@@ -367,154 +369,6 @@ Timer_Handler:
 	ORR r1, #0x1			;set 0th bit to 1
 	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
 
-	LDR r4, ptr_to_mydataUART
-	LDRB r5, [r4]			;read what char is it (w,a,s,d)
-
-	;read the current x position, then add/sub to it to get the next position
-	LDR r7, ptr_to_xPosition
-
-	CMP r5, #0
-	BEQ moveUp				;branch if char is w
-
-	CMP r5, #1				;checking if char is a
-	BEQ moveLeft			;branch if char is a
-
-	CMP r5, #2			;checking if char is s
-	BEQ moveDown		;branch if char is s to set to 2
-
-	CMP r5, #3			;checking if char is d
-	BEQ moveRight		;branch if char is d to set to 3
-	B timerdone
-
-;we also need to check if the next position is the wall or x
-moveUp:
-	;sub 25 to get next position
-	LDR r9, [r7]
-	SUB r9, r9, #25
-
-	LDRB r10, [r9] ;read whats there already - if x or wall end game
-	CMP r10, #0x78 ;x
-	BEQ endGame
-	CMP r10, #0x7c ;wall
-	BEQ endGame
-	CMP r10, #0x2d ;wall
-	BEQ endGame
-
-	MOV r6, #0x78 ;put an x
-	STRB r6, [r9] ;store it in memory
-
-	LDR r8, ptr_to_xPosition ;update last x position
-	STR r9, [r8]
-
-	LDR r5, ptr_to_xCount
-	LDRB r7, [r5]	; read the current score
-	ADD r7, r7, #1	; since we put an x, we need to increment the score by one
-	STRB r7, [r5]	; save it back to the memory
-
-	B timerdone
-
-moveLeft:
-	;sub 1 to get next position
-	LDR r9, [r7]
-	SUB r9, r9, #1
-
-	LDRB r10, [r9] ;read whats there already - if x or wall end game
-	CMP r10, #0x78 ;x
-	BEQ endGame
-	CMP r10, #0x7c ;wall
-	BEQ endGame
-	CMP r10, #0x2d ;wall
-	BEQ endGame
-
-	MOV r6, #0x78 ;put an x
-	STRB r6, [r9] ;store it in memory
-
-	LDR r8, ptr_to_xPosition
-	STR r9, [r8]
-
-	LDR r5, ptr_to_xCount
-	LDRB r7, [r5]	; read the current score
-	ADD r7, r7, #1	; since we put an x, we need to increment the score by one
-	STRB r7, [r5]	; save it back to the memory
-	B timerdone
-
-moveDown:
-	;add 25 to get next position
-	LDR r9, [r7]
-	ADD r9, r9, #25
-
-	LDRB r10, [r9] ;read whats there already - if x or wall end game
-	CMP r10, #0x78 ;x
-	BEQ endGame
-	CMP r10, #0x7c ;wall
-	BEQ endGame
-	CMP r10, #0x2d ;wall
-	BEQ endGame
-
-	MOV r6, #0x78 ;put an x
-	STRB r6, [r9] ;store it in memory
-
-	LDR r8, ptr_to_xPosition
-	STR r9, [r8]
-
-	LDR r5, ptr_to_xCount
-	LDRB r7, [r5]	; read the current score
-	ADD r7, r7, #1	; since we put an x, we need to increment the score by one
-	STRB r7, [r5]	; save it back to the memory
-
-	B timerdone
-
-moveRight:
-	;add 1 to get next position
-	LDR r9, [r7]
-	ADD r9, r9, #1
-
-	LDRB r10, [r9] ;read whats there already - if x or wall end game
-	CMP r10, #0x78 ;x
-	BEQ endGame
-	CMP r10, #0x7c ;wall
-	BEQ endGame
-	CMP r10, #0x2d ;wall
-	BEQ endGame
-
-	MOV r6, #0x78 ;put an x
-	STRB r6, [r9] ;store it in memory
-
-	LDR r8, ptr_to_xPosition
-	STR r9, [r8]
-
-	LDR r5, ptr_to_xCount
-	LDRB r7, [r5]	; read the current score
-	ADD r7, r7, #1	; since we put an x, we need to increment the score by one
-	STRB r7, [r5]	; save it back to the memory
-
-	B timerdone
-
-endGame:
-	ldr r0, ptr_to_gameOverScreen ;print the game over prompt
-	BL output_string
-	;store a 1 in game end flag
-	MOV r11, #1
-	ldr r10, ptr_to_gameEnd
-	str r11, [r10]
-	B end
-
-timerdone:
-	MOV r0, #0xC
-	BL output_string
-
-	;print score
-	ldr r0, ptr_to_scorePrompt
-	BL output_string
-	ldr r0, ptr_to_xCount		;load pointer to score
-	LDRB r1, [r0]				;read in the score number into r1
-	LDR r0, ptr_to_score		;can't be saving the string ver. into the same memory address
-	BL int2string				;int2string takes in int at r1 and places it as string in r0's address
-	LDR r0, ptr_to_score
-	BL output_string			;print out the score
-	;print the main game prompt
-	ldr r0, ptr_to_prompt
-	BL output_string
 
 end:
 	POP {r4-r12,lr} ; Restore registers from stack
