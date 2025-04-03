@@ -5,6 +5,7 @@
 	.global read_character
 	.global read_string
 	.global output_string
+	.global output_ansi
 	.global read_from_push_btns
 	.global illuminate_LEDs
 	.global illuminate_RGB_LED
@@ -240,11 +241,34 @@ outstringloop:
 	LDRB r0, [r3] 		;load character from the string to r0
 	CMP r0, #0 			;check if the character is null
 	BEQ outstringdone 	;if null, end the loop
+	CMP r0, #0x80
+	BGE output_ansi_label
 	BL output_character ;output character
 	ADD r3, r3, #1 		;increment the address to point to the next character
 	B outstringloop
 
+output_ansi_label:
+	BL output_ansi
+	B outstringloop
+
 outstringdone:
+    POP   {r4-r12, lr}
+    MOV   pc, lr
+
+output_ansi:
+	PUSH {r4-r12,lr} 	; Store any registers in the range of r4 through r12
+;	MOV r3, r0 			;move base address in r0 to r3
+
+outAnsiloop:
+	LDRB r0, [r3] 		;load character from the string to r0
+	SUB r4, r0, #0x80
+	BGE checkEscape
+	;BEQ outstringdone 	;if null, end the loop
+	BL output_character ;output character
+	ADD r3, r3, #1 		;increment the address to point to the next character
+	B outstringloop
+
+outAnsidone:
     POP   {r4-r12, lr}
     MOV   pc, lr
 

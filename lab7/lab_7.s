@@ -32,7 +32,7 @@ prompt:	.string 0xA, 0xD, 27, "[48;5;248m                                       
 		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
 		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
 		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
-		.string 27, "[48;5;248m ", 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
+		.string , 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD
 		.string 27, "[48;5;248m                                                                                  ", 0xA, 0xD, 0
 ;so this is the lab7 game board. should we do what we did with lab6 and just put the ball and the paddles hardcoded in at first?
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
@@ -45,7 +45,11 @@ gameEnd: .byte 0x00
 gameOverScreen:	.string 0xC, "GAME OVER", 0
 scorePrompt:	.string "Score: ", 0
 score:	.byte 0x0
-test_ansi:	.string 27, "[41m                                                              ", 0
+lookUpTable: ;0x81 is our go back character
+			.string 27, "[48;5;248m ", 0x81 ;0x90 (offset 10)
+			.string 27, "[40m ", 0x81	;0x20
+			.string 27
+
 
 			; The .byte assembler directive stores a byte
 			; (initialized to 0x20 in this case) at the label
@@ -61,6 +65,7 @@ test_ansi:	.string 27, "[41m                                                    
 	.global Timer_Handler		; This is needed for Lab #6
 	.global simple_read_character	; read_character modified for interrupts
 	.global output_character	; This is from your Lab #4 Library
+	.global output_ansi
 	.global read_string		; This is from your Lab #4 Library
 	.global output_string		; This is from your Lab #4 Library
 	.global uart_init		; This is from your Lab #4 Library
@@ -82,7 +87,6 @@ ptr_to_gameEnd:			.word gameEnd
 ptr_to_gameOverScreen:	.word gameOverScreen
 ptr_to_scorePrompt:		.word scorePrompt
 ptr_to_score:			.word score
-ptr_to_test_ansi:		.word test_ansi
 
 lab7:				; This is your main routine which is called from
 				; your C wrapper.
@@ -106,8 +110,6 @@ begin:
 	bl timer_init
 
 	ldr r0, ptr_to_prompt
-
-	;ldr r0, ptr_to_test_ansi
 	bl output_string
 
 ;lab7_loop:
