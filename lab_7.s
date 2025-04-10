@@ -6,10 +6,11 @@
 	.global xCount
 	.global xPosition
 	.global gameEnd
-	.global lookUpTable
 
 
-prompt:	.string 0xA, 0xD, 0x82, "                                                                                  ", 0xA, 0xD
+promptTop:	.string 0xA, 0xD, 0x82, "                                                                                    ", 0
+promptMiddle: .string 0xA, 0xD, 0x82, " ", 0x83, "                                                                                  ", 0x82, " ", 0
+paddle:	.string 0x84, 0
 		;.string 27, 0x90, 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD, 0
 		;null 0
 ;so this is the lab7 game board. should we do what we did with lab6 and just put the ball and the paddles hardcoded in at first?
@@ -23,10 +24,6 @@ gameEnd: .byte 0x00
 gameOverScreen:	.string 0xC, "GAME OVER", 0
 scorePrompt:	.string "Score: ", 0
 score:	.byte 0x0
-lookUpTable: ;0x81 is our go back character - sub 80 later
-			.string 27, "[48;5;248m", 0x81 ;0x82 (offset 10) gray
-			.string 27, "[40m", 0x81	;0x83 (offset 20) black space
-			.string 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 0x81 ;B0 - paddle (white)
 
 
 			; The .byte assembler directive stores a byte
@@ -54,7 +51,12 @@ lookUpTable: ;0x81 is our go back character - sub 80 later
 	.global string2int
 	.global int2string
 
-ptr_to_prompt:		.word prompt
+
+
+ptr_to_promptTop:		.word promptTop
+ptr_to_promptMiddle:	.word promptMiddle
+ptr_to_paddle:			.word paddle
+
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
 ptr_to_xCount:			.word xCount
@@ -65,7 +67,7 @@ ptr_to_gameEnd:			.word gameEnd
 ptr_to_gameOverScreen:	.word gameOverScreen
 ptr_to_scorePrompt:		.word scorePrompt
 ptr_to_score:			.word score
-ptr_to_lookUpTable:		.word lookUpTable
+
 
 lab7:				; This is your main routine which is called from
 				; your C wrapper.
@@ -93,12 +95,24 @@ begin:
 ;nested for loop to print board
 print_board:
 	MOV r6, #24 ;counter
-	ldr r0, ptr_to_prompt
+	;print the top border once
+	ldr r0, ptr_to_promptTop
+	BL output_string
 boardloop:
+	;print the middle border 24 times
+	ldr r0, ptr_to_promptMiddle
 	BL output_string
 	SUB r6, r6, #1
 	CMP r6, #0
 	BGE boardloop
+
+	;print the border again (bottom)
+	ldr r0, ptr_to_promptTop
+	BL output_string
+
+	;print the paddle
+;	ldr r0, ptr_to_paddle
+;	BL output_string
 
 ;lab7_loop:
 	;check if game is paused

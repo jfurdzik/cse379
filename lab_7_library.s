@@ -1,3 +1,11 @@
+	.data
+
+	;0x81 is our go back character - sub 80 later
+lookUpTable1: .string 27, "[48;5;248m", 0x81 ;0x82 (offset 10) gray
+lookUpTable2: .string 27, "[40m", 0x81	;0x83 (offset 20) black space
+lookUpTable3: .string 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 0x81 ;84 - paddle (white)
+;need to fix paddle string it's not prnting correctly
+
 	.text
 	.global uart_init
 	.global gpio_btn_and_LED_init
@@ -14,9 +22,14 @@
 	.global multiplication
 	.global string2int
 	.global int2string
+	.global lookUpTable1
+	.global lookUpTable2
+	.global lookUpTable3
 
-	.global lookUpTable
-ptr_to_lookUpTable:		.word lookUpTable
+
+ptr_to_lookUpTable1:		.word lookUpTable1
+ptr_to_lookUpTable2:		.word lookUpTable2
+ptr_to_lookUpTable3:		.word lookUpTable3
 	;lab5
 	;.global uart_interrupt_init
 	;.global gpio_interrupt_init
@@ -250,31 +263,44 @@ outstringloop:
 	ADD r3, r3, #1 		;increment the address to point to the next character
 	B outstringloop
 
+;this is the code for when we encounter an ansi character (>80)
+;switch cases for what to print (in  r9) based on what's in r4
 output_ansi_label:
-	BL output_ansi
-	B outstringloop
+	;if  r4 = 2,print lt1
+	;if r4 = 3, print lt2
+	;if r4 = 4, print lt3
+	SUB r4, r0, #0x80
+	CMP r4, #2
+	BEQ lt1
+	CMP r4, #3
+	BEQ lt2
+	CMP r4, #4
+	BEQ lt3
+
+lt1: LDR r9, ptr_to_lookUpTable1
+	 B outAnsiloop
+lt2: LDR r9, ptr_to_lookUpTable2
+	 B outAnsiloop
+lt3: LDR r9, ptr_to_lookUpTable3
+	 B outAnsiloop
+
+outAnsiloop:
+	LDRB r0, [r9] 		;load character from the string to r0
+	CMP r0, #0x81
+	BEQ outAnsidone		;if reach go back character 81, then end
+	BL output_character ;output character
+	ADD r9, r9, #1 		;increment the address to point to the next character
+
+	B outAnsiloop
+
+outAnsidone:
+	ADD r3, r3, #1 ;move forward in output string too
+	B outstringloop ;output the rest of the string normally
 
 outstringdone:
     POP   {r4-r12, lr}
     MOV   pc, lr
 
-;below is the actual Ansi output subroutine
-output_ansi:
-	SUB r4, r0, #0x80
-	LDR r9, ptr_to_lookUpTable
-
-outAnsiloop:
-	LDRB r0, [r9, r4] 		;load character from the string to r0
-	CMP r0, #0x81
-	BEQ outAnsidone
-	;BEQ outstringdone 	;if null, end the loop
-	BL output_character ;output character
-	ADD r3, r3, #1 		;increment the address to point to the next character
-	B outAnsiloop
-
-outAnsidone:
-    POP   {r4-r12, lr}
-    MOV   pc, lr
 
 read_from_push_btns:
 	PUSH {r4-r12, lr}         ; Spill registers to stack
