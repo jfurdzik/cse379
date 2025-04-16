@@ -3,8 +3,8 @@
 	;0x81 is our go back character - sub 80 later
 lookUpTable1: .string 27, "[48;5;248m", 0x81 ;0x82 (offset 10) gray
 lookUpTable2: .string 27, "[40m", 0x81	;0x83 (offset 20) black space
-lookUpTable3: .string 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 0x81 ;84 - paddle (white)
-;need to fix paddle string it's not prnting correctly
+lookUpTable3: .string 27, "[10;2H", 27, "[41m ", 27, "[11;2H", 27, "[41m ", 27, "[12;2H", 27, "[41m ", 27, "[13;2H", 27, "[41m ", 0x81 ;84 - paddle (red)
+lookUpTable4: .string 27, "[10;83H", 27, "[42m ", 27, "[11;83H", 27, "[42m ", 27, "[12;83H", 27, "[42m ", 27, "[13;83H", 27, "[42m ", 0x81 ;85 - paddle (green)
 
 	.text
 	.global uart_init
@@ -25,11 +25,13 @@ lookUpTable3: .string 27, "[37m ", 0xA, 0xD, 27, "[37m ", 0xA, 0xD, 27, "[37m ",
 	.global lookUpTable1
 	.global lookUpTable2
 	.global lookUpTable3
+	.global	lookUpTable4
 
 
 ptr_to_lookUpTable1:		.word lookUpTable1
 ptr_to_lookUpTable2:		.word lookUpTable2
 ptr_to_lookUpTable3:		.word lookUpTable3
+ptr_to_lookUpTable4:		.word lookUpTable4
 	;lab5
 	;.global uart_interrupt_init
 	;.global gpio_interrupt_init
@@ -276,12 +278,16 @@ output_ansi_label:
 	BEQ lt2
 	CMP r4, #4
 	BEQ lt3
+	CMP r4, #5
+	BEQ lt4
 
 lt1: LDR r9, ptr_to_lookUpTable1
 	 B outAnsiloop
 lt2: LDR r9, ptr_to_lookUpTable2
 	 B outAnsiloop
 lt3: LDR r9, ptr_to_lookUpTable3
+	 B outAnsiloop
+lt4: LDR r9, ptr_to_lookUpTable4
 	 B outAnsiloop
 
 outAnsiloop:

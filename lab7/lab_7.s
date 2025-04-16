@@ -7,13 +7,12 @@
 	.global xPosition
 	.global gameEnd
 
-
+;any character over 80 is an ansi escapre sequence (see library for definitions)
 promptTop:	.string 0xA, 0xD, 0x82, "                                                                                    ", 0
 promptMiddle: .string 0xA, 0xD, 0x82, " ", 0x83, "                                                                                  ", 0x82, " ", 0
-paddle:	.string 0x84, 0
-		;.string 27, 0x90, 27, "[40m                                                                                ", 27, "[48;5;248m ", 0xA, 0xD, 0
-		;null 0
-;so this is the lab7 game board. should we do what we did with lab6 and just put the ball and the paddles hardcoded in at first?
+paddleLeft:	.string 0x84, 0
+paddleRight: .string 0x85, 0
+
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
 mydataUART:	.byte	0x20	; This is where you can store data.
 mydataGPIO:	.byte	0x30
@@ -55,7 +54,8 @@ score:	.byte 0x0
 
 ptr_to_promptTop:		.word promptTop
 ptr_to_promptMiddle:	.word promptMiddle
-ptr_to_paddle:			.word paddle
+ptr_to_paddleLeft:			.word paddleLeft
+ptr_to_paddleRight:		.word paddleRight
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -111,8 +111,11 @@ boardloop:
 	BL output_string
 
 	;print the paddle
-;	ldr r0, ptr_to_paddle
-;	BL output_string
+	ldr r0, ptr_to_paddleLeft
+	BL output_string
+
+	ldr r0, ptr_to_paddleRight
+	BL output_string
 
 ;lab7_loop:
 	;check if game is paused
