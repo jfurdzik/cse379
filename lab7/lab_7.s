@@ -8,10 +8,18 @@
 	.global gameEnd
 
 ;any character over 80 is an ansi escapre sequence (see library for definitions)
+;this is the main game board
+clearScreen: .string 0x83, 27, "[2J", 0
 promptTop:	.string 0xA, 0xD, 0x82, "                                                                                    ", 0
 promptMiddle: .string 0xA, 0xD, 0x82, " ", 0x83, "                                                                                  ", 0x82, " ", 0
+;these are the paddles as a whole
 paddleLeft:	.string 0x84, 0
 paddleRight: .string 0x85, 0
+;these are cursor sequences to move paddles up/down
+leftPaddleUpOne: .string 0x86, 0
+leftPaddleDownOne: .string 0x87, 0
+rightPaddleUpOne: .string 0x88, 0
+rightPaddleDownOne: .string 0x89, 0
 
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
 mydataUART:	.byte	0x20	; This is where you can store data.
@@ -51,11 +59,15 @@ score:	.byte 0x0
 	.global int2string
 
 
-
+ptr_to_clearScreen:	.word clearScreen
 ptr_to_promptTop:		.word promptTop
 ptr_to_promptMiddle:	.word promptMiddle
 ptr_to_paddleLeft:			.word paddleLeft
 ptr_to_paddleRight:		.word paddleRight
+ptr_to_leftPaddleUpOne: .word leftPaddleUpOne
+ptr_to_leftPaddleDownOne: .word leftPaddleDownOne
+ptr_to_rightPaddleUpOne: .word rightPaddleUpOne
+ptr_to_rightPaddleDownOne: .word rightPaddleDownOne
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -90,7 +102,8 @@ begin:
 	bl gpio_interrupt_init
 	bl timer_init
 
-
+	ldr r0, ptr_to_clearScreen
+	bl output_string
 
 ;nested for loop to print board
 print_board:
@@ -110,14 +123,20 @@ boardloop:
 	ldr r0, ptr_to_promptTop
 	BL output_string
 
-	;print the paddle
+	;print the paddles
 	ldr r0, ptr_to_paddleLeft
 	BL output_string
-
 	ldr r0, ptr_to_paddleRight
 	BL output_string
 
-;lab7_loop:
+
+	;game loop that allows it to be interrupted
+	MOV r1, #0xFFFF
+	MOVT r1, #0x7FFF
+lab7_loop:
+	SUB r1, r1, #1
+	CMP r1, #0
+	BGT lab7_loop
 	;check if game is paused
 	;ldr r9, ptr_to_isitpaused
 	;LDRB r10, [r9]
@@ -290,41 +309,41 @@ UART0_Handler:
 	STRB r1, [r0, #0x044] 	;write to enable UART interrupt
 	BL simple_read_character
 
-	CMP r0, #0x77
-	BEQ uart_w_setter		;branch if char is w to set to 0
-
-	CMP r0, #0x61			;checking if char is a
-	BEQ uart_a_setter		;branch if char is a to set to 1
+	CMP r0, #0x77				;checking if char is w
+	BEQ w_left_paddle_up		;branch if char is w to move L paddle up
 
 	CMP r0, #0x73			;checking if char is s
-	BEQ uart_s_setter		;branch if char is s to set to 2
+	BEQ s_left_paddle_down		;branch if char is s to move L paddle down
 
-	CMP r0, #0x64			;checking if char is d
-	BEQ uart_d_setter		;branch if char is d to set to 3
+	CMP r0, #0x69			;checking if char is i
+	BEQ i_right_paddle_up		;branch if char is i to move R paddle up
+
+	CMP r0, #0x6b			;checking if char is k
+	BEQ k_right_paddle_down		;branch if char is k to set to 3
+	B uartdone ;theoretically never runs but just in case
+
+w_left_paddle_up:
+	;redraw left paddle 1 space up using cursor
+	ldr r0, ptr_to_leftPaddleUpOne
+	BL output_string
 	B uartdone
 
-uart_w_setter:
-	MOV r3, #0
-	LDR r4, ptr_to_mydataUART
-	STRB r3, [r4]
+s_left_paddle_down:
+	;redraw left paddle 1 space down using cursor
+	ldr r0, ptr_to_leftPaddleDownOne
+	BL output_string
 	B uartdone
 
-uart_a_setter:
-	MOV r3, #1
-	LDR r4, ptr_to_mydataUART
-	STRB r3, [r4]
+i_right_paddle_up:
+	;redraw right paddle 1 space up using cursor
+	ldr r0, ptr_to_rightPaddleUpOne
+	BL output_string
 	B uartdone
 
-uart_s_setter:
-	MOV r3, #2
-	LDR r4, ptr_to_mydataUART
-	STRB r3, [r4]
-	B uartdone
-
-uart_d_setter:
-	MOV r3, #3
-	LDR r4, ptr_to_mydataUART
-	STRB r3, [r4]
+k_right_paddle_down:
+	;redraw right paddle 1 space down using cursor
+	ldr r0, ptr_to_rightPaddleDownOne
+	BL output_string
 	B uartdone
 
 uartdone:
