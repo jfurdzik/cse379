@@ -14,7 +14,7 @@ lookUpTable8: .string 27, "[D", 27, "[40m ", 27, "[4A",27, "[D", 27, "[42m ", 27
 lookUpTable9: .string 27, "[D", 27, "[B", 27, "[42m ", 27, "[4A", 27, "[D", 27, "[40m ", 27, "[4B", 0x81 ;0x89 right paddle down 1
 lookUpTableA: .string 27, "[14;40H", 27, "[47m", 0x81
 lookUpTableB: .string 27, "[D", 27, "[40m ", 27, "[47m ", 0x81 ;right 1
-lookUpTableC: .string 27, "[47m ", 27, "[2D", 27, "[40m ", 0x81 ;left 1
+lookUpTableC: .string 27, "[40m ", 27, "[2D", 27, "[47m ", 0x81 ;left 1
 
 cursorMoveStrL: .string 27, "[xx;3H", 0, 0
 cursorMoveStrL1Digit: .string 27, "[x;3H", 0, 0

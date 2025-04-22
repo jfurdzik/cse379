@@ -24,6 +24,7 @@ ball: .string 0x8A, " ", 0
 ballRight: .string 0x8B, 0
 ballLeft: .string 0x8C, 0
 ballCursorMove: .string 27, "[14;xxH", 0, 0
+ballCursorMove1Digit: .string 27, "[14;xH", 0, 0
 
 ballCol: .byte 0x28 ;40
 ballRow: .byte 0xE ;14
@@ -83,6 +84,7 @@ ptr_to_ballLeft:			.word ballLeft
 ptr_to_ballCol:				.word ballCol
 ptr_to_ballRow:				.word ballRow
 ptr_to_ballCursorMove:		.word ballCursorMove
+ptr_to_ballCursorMove1Digit: .word ballCursorMove1Digit
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -414,12 +416,17 @@ Timer_Handler:
 	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
 
 	;move cursor to ball location
-	;two digit
+
 	LDR r10, ptr_to_ballCursorMove
 	;now store this inside the ansi sequence manually in memory
 	;int2string to print it correctly
-	LDR r9, ptr_to_ballCol ;decrement row by 1
+	LDR r9, ptr_to_ballCol
 	LDRB r11, [r9]
+
+	CMP r11, #0xA
+	BLT one_digit
+
+	;two digit
 	MOV r1, r11 ;integer in r1
 	ADD r10, r10, #5 ;at the xx space we left
 	MOV r0, r10 ;string base addr in r0
@@ -431,8 +438,40 @@ Timer_Handler:
 
 	LDR r0, ptr_to_ballCursorMove
 	BL output_string
+	B ballCursorDone
 
-	;determine ball direction for movement
+one_digit:
+	LDR r10, ptr_to_ballCursorMove
+	;now store this inside the ansi sequence manually in memory
+	;int2string to print it correctly
+	MOV r1, r11 ;integer in r1
+	ADD r10, r10, #5 ;at the x space we left
+	MOV r0, r10 ;string base addr in r0
+	BL int2string
+
+	;need to manually write the ; 0x3b bc int2string nul terminates it
+	MOV r2, #0x48
+	STRB r2, [r10, #1] ;offset 1 is right after the x
+
+	LDR r0, ptr_to_ballCursorMove
+	BL output_string
+
+ballCursorDone:
+	;if at a wall switch directions (col in r11)
+	CMP r11, #2
+	BEQ switch_direction
+	CMP r11, #82
+	BEQ switch_direction
+	B skip
+
+switch_direction:
+	LDR r2, ptr_to_ballDirection
+	LDRB r3, [r2]
+	MVN r4, r3 ;get the negative
+	AND r4, r4, #1 ;isolate 0th bit
+	STRB r4, [r2] ;store it back (set direction)
+
+skip: ;determine ball direction for movement
 	LDR r2, ptr_to_ballDirection
 	LDRB r3, [r2]
 	CMP r3, #1
@@ -443,7 +482,7 @@ Timer_Handler:
 	ldr r0, ptr_to_ballLeft
 	BL output_string
 
-	;incr column
+	;decr column
 	LDR r10, ptr_to_ballCol ;decrement row by 1
 	LDRB r11, [r10]
 	;decr col by 1
@@ -459,7 +498,7 @@ right:
 	;incr column
 	LDR r10, ptr_to_ballCol ;decrement row by 1
 	LDRB r11, [r10]
-	;increment row by 1
+	;increment col by 1
 	ADD r11, r11, #1
 	STRB r11, [r10]
 
