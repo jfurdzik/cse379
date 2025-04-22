@@ -12,6 +12,9 @@ lookUpTable6: .string 27, "[D", 27, "[40m ", 27, "[4A",27, "[D", 27, "[41m ", 27
 lookUpTable7: .string 27, "[D", 27, "[B", 27, "[41m ", 27, "[4A", 27, "[D", 27, "[40m ", 27, "[4B", 0x81 ;0x87 left paddle down 1
 lookUpTable8: .string 27, "[D", 27, "[40m ", 27, "[4A",27, "[D", 27, "[42m ", 27, "[3B", 0x81 ;0x88 right paddle up 1
 lookUpTable9: .string 27, "[D", 27, "[B", 27, "[42m ", 27, "[4A", 27, "[D", 27, "[40m ", 27, "[4B", 0x81 ;0x89 right paddle down 1
+lookUpTableA: .string 27, "[14;40H", 27, "[47m", 0x81
+lookUpTableB: .string 27, "[D", 27, "[40m ", 27, "[47m ", 0x81 ;right 1
+lookUpTableC: .string 27, "[47m ", 27, "[2D", 27, "[40m ", 0x81 ;left 1
 
 cursorMoveStrL: .string 27, "[xx;3H", 0, 0
 cursorMoveStrL1Digit: .string 27, "[x;3H", 0, 0
@@ -44,6 +47,9 @@ cursorMoveStrR1Digit: .string 27, "[x;84H", 0, 0
 	.global lookUpTable7
 	.global lookUpTable8
 	.global lookUpTable9
+	.global lookUpTableA
+	.global lookUpTableB
+	.global lookUpTableC
 	.global currRowL
 	.global currRowR
 	.global cursorMoveStrL
@@ -60,6 +66,9 @@ ptr_to_lookUpTable6:		.word lookUpTable6
 ptr_to_lookUpTable7:		.word lookUpTable7
 ptr_to_lookUpTable8:		.word lookUpTable8
 ptr_to_lookUpTable9:		.word lookUpTable9
+ptr_to_lookUpTableA:		.word lookUpTableA
+ptr_to_lookUpTableB:		.word lookUpTableB
+ptr_to_lookUpTableC:		.word lookUpTableC
 ptr_to_currRowL:			.word currRowL
 ptr_to_currRowR:			.word currRowR
 ptr_to_cursorMoveStrL:		.word cursorMoveStrL
@@ -318,6 +327,12 @@ output_ansi_label:
 	BEQ lt8
 	CMP r4, #9
 	BEQ lt9
+	CMP r4, #0xA
+	BEQ lta
+	CMP r4, #0xB
+	BEQ ltb
+	CMP r4, #0xC
+	BEQ ltc
 
 ;load the correct pointer by case into r9
 lt2: LDR r9, ptr_to_lookUpTable2
@@ -385,6 +400,14 @@ lt9: BL moveCursorR ;move cursor to the correct position
 	 STRB r11, [r10]
 
 	 B outAnsiloop
+
+lta: LDR r9, ptr_to_lookUpTableA
+	 B outAnsiloop ;jump to main loop to print remaining chars
+
+ltb: LDR r9, ptr_to_lookUpTableB
+	 B outAnsiloop ;jump to main loop to print remaining chars
+ltc: LDR r9, ptr_to_lookUpTableC
+	 B outAnsiloop ;jump to main loop to print remaining chars
 
 ;proceed with rest of ansi string until reach 0x81
 outAnsiloop:

@@ -20,6 +20,14 @@ leftPaddleUpOne: .string 0x86, 0
 leftPaddleDownOne: .string 0x87, 0
 rightPaddleUpOne: .string 0x88, 0
 rightPaddleDownOne: .string 0x89, 0
+ball: .string 0x8A, " ", 0
+ballRight: .string 0x8B, 0
+ballLeft: .string 0x8C, 0
+ballCursorMove: .string 27, "[14;xxH", 0, 0
+
+ballCol: .byte 0x28 ;40
+ballRow: .byte 0xE ;14
+ballDirection: .byte 0x00 ;0 = left, 1 = right
 
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
 mydataUART:	.byte	0x20	; This is where you can store data.
@@ -68,6 +76,13 @@ ptr_to_leftPaddleUpOne: .word leftPaddleUpOne
 ptr_to_leftPaddleDownOne: .word leftPaddleDownOne
 ptr_to_rightPaddleUpOne: .word rightPaddleUpOne
 ptr_to_rightPaddleDownOne: .word rightPaddleDownOne
+ptr_to_ball:				.word ball
+ptr_to_ballDirection:		.word ballDirection
+ptr_to_ballRight:			.word ballRight
+ptr_to_ballLeft:			.word ballLeft
+ptr_to_ballCol:				.word ballCol
+ptr_to_ballRow:				.word ballRow
+ptr_to_ballCursorMove:		.word ballCursorMove
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -127,6 +142,9 @@ boardloop:
 	ldr r0, ptr_to_paddleLeft
 	BL output_string
 	ldr r0, ptr_to_paddleRight
+	BL output_string
+
+	ldr r0, ptr_to_ball
 	BL output_string
 
 
@@ -395,6 +413,55 @@ Timer_Handler:
 	ORR r1, #0x1			;set 0th bit to 1
 	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
 
+	;move cursor to ball location
+	;two digit
+	LDR r10, ptr_to_ballCursorMove
+	;now store this inside the ansi sequence manually in memory
+	;int2string to print it correctly
+	LDR r9, ptr_to_ballCol ;decrement row by 1
+	LDRB r11, [r9]
+	MOV r1, r11 ;integer in r1
+	ADD r10, r10, #5 ;at the xx space we left
+	MOV r0, r10 ;string base addr in r0
+	BL int2string
+
+	;need to manually write the H bc int2string nul terminates it
+	MOV r2, #0x48
+	STRB r2, [r10, #2] ;offset 2 is right after the xx
+
+	LDR r0, ptr_to_ballCursorMove
+	BL output_string
+
+	;determine ball direction for movement
+	LDR r2, ptr_to_ballDirection
+	LDRB r3, [r2]
+	CMP r3, #1
+	BEQ right
+
+	;left
+	;redraw ball 1 left using cursor
+	ldr r0, ptr_to_ballLeft
+	BL output_string
+
+	;incr column
+	LDR r10, ptr_to_ballCol ;decrement row by 1
+	LDRB r11, [r10]
+	;decr col by 1
+	SUB r11, r11, #1
+	STRB r11, [r10]
+	B end
+
+right:
+	;redraw ball 1 right using cursor
+	ldr r0, ptr_to_ballRight
+	BL output_string
+
+	;incr column
+	LDR r10, ptr_to_ballCol ;decrement row by 1
+	LDRB r11, [r10]
+	;increment row by 1
+	ADD r11, r11, #1
+	STRB r11, [r10]
 
 end:
 	POP {r4-r12,lr} ; Restore registers from stack
