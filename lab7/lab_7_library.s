@@ -1,20 +1,22 @@
 	.data
-currRowL: .byte 0x10 ;current row of cursor (start = 16)
-currRowR: .byte 0x10 ;current row of cursor (start = 16)
+currRowL: .byte 0xE ;current row of cursor (start = 14)
+currRowR: .byte 0xE ;current row of cursor (start = 14)
 
 	;0x81 is our go back character - sub 80 later
 	;there is no lt1, matches the offset so less confusing
 lookUpTable2: .string 27, "[48;5;248m", 0x81 ;0x82 (offset 2) gray
 lookUpTable3: .string 27, "[40m", 0x81	;0x83 (offset 3) black space
-lookUpTable4: .string 27, "[16;2H", 27, "[41m ", 27, "[17;2H", 27, "[41m ", 27, "[18;2H", 27, "[41m ", 27, "[19;2H", 27, "[41m ", 0x81 ;0x84 - paddle (red)
-lookUpTable5: .string 27, "[16;83H", 27, "[42m ", 27, "[17;83H", 27, "[42m ", 27, "[18;83H", 27, "[42m ", 27, "[19;83H", 27, "[42m ", 0x81 ;0x85 - paddle (green)
+lookUpTable4: .string 27, "[14;2H", 27, "[41m ", 27, "[15;2H", 27, "[41m ", 27, "[16;2H", 27, "[41m ", 27, "[17;2H", 27, "[41m ", 0x81 ;0x84 - paddle (red)
+lookUpTable5: .string 27, "[14;83H", 27, "[42m ", 27, "[15;83H", 27, "[42m ", 27, "[16;83H", 27, "[42m ", 27, "[17;83H", 27, "[42m ", 0x81 ;0x85 - paddle (green)
 lookUpTable6: .string 27, "[D", 27, "[40m ", 27, "[4A",27, "[D", 27, "[41m ", 27, "[3B", 0x81 ;0x86 left paddle up 1
 lookUpTable7: .string 27, "[D", 27, "[B", 27, "[41m ", 27, "[4A", 27, "[D", 27, "[40m ", 27, "[4B", 0x81 ;0x87 left paddle down 1
 lookUpTable8: .string 27, "[D", 27, "[40m ", 27, "[4A",27, "[D", 27, "[42m ", 27, "[3B", 0x81 ;0x88 right paddle up 1
 lookUpTable9: .string 27, "[D", 27, "[B", 27, "[42m ", 27, "[4A", 27, "[D", 27, "[40m ", 27, "[4B", 0x81 ;0x89 right paddle down 1
 
-cursorMoveStrL: .string 27, "[xx;3H", 0 ;HUGE BUG MAKE REGULAR LT STRS
-cursorMoveStrR: .string 27, "[xx;84H", 0
+cursorMoveStrL: .string 27, "[xx;3H", 0, 0
+cursorMoveStrL1Digit: .string 27, "[x;3H", 0, 0
+cursorMoveStrR: .string 27, "[xx;84H", 0, 0
+cursorMoveStrR1Digit: .string 27, "[x;84H", 0, 0
 ;split this bc doesn't handle single chars and leading 0s
 
 	.text
@@ -46,6 +48,8 @@ cursorMoveStrR: .string 27, "[xx;84H", 0
 	.global currRowR
 	.global cursorMoveStrL
 	.global cursorMoveStrR
+	.global cursorMoveStrL1Digit
+	.global cursorMoveStrR1Digit
 
 
 ptr_to_lookUpTable2:		.word lookUpTable2
@@ -60,6 +64,8 @@ ptr_to_currRowL:			.word currRowL
 ptr_to_currRowR:			.word currRowR
 ptr_to_cursorMoveStrL:		.word cursorMoveStrL
 ptr_to_cursorMoveStrR:		.word cursorMoveStrR
+ptr_to_cursorMoveStrL1Digit: .word cursorMoveStrL1Digit
+ptr_to_cursorMoveStrR1Digit: .word cursorMoveStrR1Digit
 	;lab5
 	;.global uart_interrupt_init
 	;.global gpio_interrupt_init
@@ -326,7 +332,7 @@ lt6: BL moveCursorL ;move cursor to the correct position
 	;check if row is topmost (6) else don't move up
 	 LDR r10, ptr_to_currRowL ;decrement row by 1
 	 LDRB r11, [r10]
-	 CMP r11, #0x6
+	 CMP r11, #0x3
 	 BEQ outAnsidone ;don't do the rest of the printing
 
 	 LDR r9, ptr_to_lookUpTable6 ;left up 1
@@ -340,7 +346,7 @@ lt7: BL moveCursorL ;move cursor to the correct position
 	 ;check if row is bottommost (1A) else don't move down
 	 LDR r10, ptr_to_currRowL ;decrement row by 1
 	 LDRB r11, [r10]
-	 CMP r11, #0x1B
+	 CMP r11, #0x18
 	 BEQ outAnsidone ;don't do the rest of the printing
 
      LDR r9, ptr_to_lookUpTable7 ;left down 1
@@ -355,10 +361,10 @@ lt8: BL moveCursorR ;move cursor to the correct position
 	;check if row is topmost (6) else don't move up
 	 LDR r10, ptr_to_currRowR ;decrement row by 1
 	 LDRB r11, [r10]
-	 CMP r11, #0x6
+	 CMP r11, #0x3
 	 BEQ outAnsidone ;don't do the rest of the printing
 
-	 LDR r9, ptr_to_lookUpTable8 ;left up 1
+	 LDR r9, ptr_to_lookUpTable8 ;right up 1
 
 	 ;decrement row by 1
 	 SUB r11, r11, #1
@@ -369,10 +375,10 @@ lt9: BL moveCursorR ;move cursor to the correct position
 	 ;check if row is bottommost (1A) else don't move down
 	 LDR r10, ptr_to_currRowR ;decrement row by 1
 	 LDRB r11, [r10]
-	 CMP r11, #0x1B
+	 CMP r11, #0x18
 	 BEQ outAnsidone ;don't do the rest of the printing
 
-     LDR r9, ptr_to_lookUpTable9 ;left down 1
+     LDR r9, ptr_to_lookUpTable9 ;right down 1
 
      ;increment row by 1
 	 ADD r11, r11, #1
@@ -405,8 +411,12 @@ moveCursorL:
 	LDRB r11, [r10]
 	ADD r11, r11, #3 ;add 3 to row get correct coordinate
 
-	;now store this inside the ansi sequence manually in memory
+	CMP r11, #0xA
+	BLT one_digit
+
+	;two digit
 	LDR r10, ptr_to_cursorMoveStrL
+	;now store this inside the ansi sequence manually in memory
 	;int2string to print it correctly
 	MOV r1, r11 ;integer in r1
 	ADD r10, r10, #2 ;at the xx space we left
@@ -419,13 +429,71 @@ moveCursorL:
 
 	LDR r0, ptr_to_cursorMoveStrL
 	BL output_string
+	B cursorMoveLDone
 
+one_digit:
+	LDR r10, ptr_to_cursorMoveStrL1Digit
+	;now store this inside the ansi sequence manually in memory
+	;int2string to print it correctly
+	MOV r1, r11 ;integer in r1
+	ADD r10, r10, #2 ;at the x space we left
+	MOV r0, r10 ;string base addr in r0
+	BL int2string
+
+	;need to manually write the ; 0x3b bc int2string nul terminates it
+	MOV r2, #0x3b
+	STRB r2, [r10, #1] ;offset 1 is right after the x
+
+	LDR r0, ptr_to_cursorMoveStrL1Digit
+	BL output_string
+
+cursorMoveLDone:
 	POP   {r4-r12, lr}
     MOV   pc, lr
 
 moveCursorR:
 	PUSH {r4-r12, lr}
+	LDR r10, ptr_to_currRowR
+	LDRB r11, [r10]
+	ADD r11, r11, #3 ;add 3 to row get correct coordinate
 
+	CMP r11, #0xA
+	BLT one_digitR
+
+	;two digit
+	LDR r10, ptr_to_cursorMoveStrR
+	;now store this inside the ansi sequence manually in memory
+	;int2string to print it correctly
+	MOV r1, r11 ;integer in r1
+	ADD r10, r10, #2 ;at the xx space we left
+	MOV r0, r10 ;string base addr in r0
+	BL int2string
+
+	;need to manually write the ; 0x3b bc int2string nul terminates it
+	MOV r2, #0x3b
+	STRB r2, [r10, #2] ;offset 2 is right after the xx
+
+	LDR r0, ptr_to_cursorMoveStrR
+	BL output_string
+	B cursorMoveRDone
+
+one_digitR:
+	LDR r10, ptr_to_cursorMoveStrR1Digit
+	;now store this inside the ansi sequence manually in memory
+	;int2string to print it correctly
+	MOV r1, r11 ;integer in r1
+	ADD r10, r10, #2 ;at the x space we left
+	MOV r0, r10 ;string base addr in r0
+	BL int2string
+
+	;need to manually write the ; 0x3b bc int2string nul terminates it
+	MOV r2, #0x3b
+	STRB r2, [r10, #1] ;offset 1 is right after the x
+
+	LDR r0, ptr_to_cursorMoveStrR1Digit
+	BL output_string
+
+cursorMoveRDone:
 	POP   {r4-r12, lr}
     MOV   pc, lr
 
