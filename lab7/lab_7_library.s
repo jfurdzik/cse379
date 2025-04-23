@@ -2,6 +2,9 @@
 currRowL: .byte 0xE ;current row of cursor (start = 14)
 currRowR: .byte 0xE ;current row of cursor (start = 14)
 
+	.global currRowL
+	.global currRowR
+
 	;0x81 is our go back character - sub 80 later
 	;there is no lt1, matches the offset so less confusing
 lookUpTable2: .string 27, "[48;5;248m", 0x81 ;0x82 (offset 2) gray

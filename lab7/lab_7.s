@@ -6,10 +6,12 @@
 	.global xCount
 	.global xPosition
 	.global gameEnd
+	.global currRowL
+	.global currRowR
 
 ;any character over 80 is an ansi escapre sequence (see library for definitions)
 ;this is the main game board
-clearScreen: .string 0x83, 27, "[2J", 0
+clearScreen: .string 0x83, 27, "[2J", 27, "[0;0H", 0
 promptTop:	.string 0xA, 0xD, 0x82, "                                                                                    ", 0
 promptMiddle: .string 0xA, 0xD, 0x82, " ", 0x83, "                                                                                  ", 0x82, " ", 0
 ;these are the paddles as a whole
@@ -25,10 +27,13 @@ ballRight: .string 0x8B, 0
 ballLeft: .string 0x8C, 0
 ballCursorMove: .string 27, "[14;xxH", 0, 0
 ballCursorMove1Digit: .string 27, "[14;xH", 0, 0
+ballDisappear: .string 0x83, " ", 27, "[2D", 0x83, " ", 0, 0
+clearCenter:	.string 27, "[14;40H", 0x83, " ", 0, 0
 
 ballCol: .byte 0x28 ;40
 ballRow: .byte 0xE ;14
 ballDirection: .byte 0x00 ;0 = left, 1 = right
+boardDone:		.byte 0x01
 
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
 mydataUART:	.byte	0x20	; This is where you can store data.
@@ -68,7 +73,7 @@ score:	.byte 0x0
 	.global int2string
 
 
-ptr_to_clearScreen:	.word clearScreen
+ptr_to_clearScreen:		.word clearScreen
 ptr_to_promptTop:		.word promptTop
 ptr_to_promptMiddle:	.word promptMiddle
 ptr_to_paddleLeft:			.word paddleLeft
@@ -85,6 +90,11 @@ ptr_to_ballCol:				.word ballCol
 ptr_to_ballRow:				.word ballRow
 ptr_to_ballCursorMove:		.word ballCursorMove
 ptr_to_ballCursorMove1Digit: .word ballCursorMove1Digit
+ptr_to_currRowL:		.word currRowL
+ptr_to_currRowR:		.word currRowR
+ptr_to_boardDone:		.word boardDone
+ptr_to_ballDisappear:	.word ballDisappear
+ptr_to_clearCenter:		.word clearCenter
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -149,6 +159,9 @@ boardloop:
 	ldr r0, ptr_to_ball
 	BL output_string
 
+	LDR r7, ptr_to_boardDone
+	MOV r8, #0x0
+	STRB r8, [r7]
 
 	;game loop that allows it to be interrupted
 	MOV r1, #0xFFFF
@@ -415,6 +428,15 @@ Timer_Handler:
 	ORR r1, #0x1			;set 0th bit to 1
 	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
 
+	ldr r0, ptr_to_clearCenter
+	BL output_string
+
+	;check if board drawn if yes exit
+	LDR r7, ptr_to_boardDone
+	LDRB r8, [r7]
+	CMP r8, #1
+	BEQ timer_end
+
 	;move cursor to ball location
 
 	LDR r10, ptr_to_ballCursorMove
@@ -457,19 +479,91 @@ one_digit:
 	BL output_string
 
 ballCursorDone:
+
 	;if at a wall switch directions (col in r11)
-	CMP r11, #2
-	BEQ switch_direction
+	CMP r11, #3
+	BEQ switch_directionL
 	CMP r11, #82
-	BEQ switch_direction
+	BEQ switch_directionR
 	B skip
 
-switch_direction:
+switch_directionL:
+	;get left paddle row
+	LDR r3, ptr_to_currRowL
+	LDRB r4, [r3]
+	LDR r5, ptr_to_ballRow
+	LDRB r6, [r5]
+
+	MOV r7, #3
+left_loop:
+	CMP r4, r6
+	BEQ hit_paddle
+	SUB r6, r6, #1
+	SUB r7, r7, #1
+	CMP r7, #0
+	BGT left_loop
+
+	;hit wall
+	;disappear + incr score
+	ldr r0, ptr_to_ballDisappear
+	bl output_string
+
+	;reset the ball location in memory
+	LDR r5, ptr_to_ballCol ;0x28 - 40
+	MOV r6, #0x28
+	STRB r6, [r5]
+	LDR r5, ptr_to_ballRow ;0xE - 14
+	MOV r6, #0xE
+	STRB r6, [r5]
+
+	;move the ball back to center
+	ldr r0, ptr_to_ball
+	BL output_string
+
+
+	B skip
+
+hit_paddle:
 	LDR r2, ptr_to_ballDirection
 	LDRB r3, [r2]
 	MVN r4, r3 ;get the negative
 	AND r4, r4, #1 ;isolate 0th bit
 	STRB r4, [r2] ;store it back (set direction)
+	B skip
+
+switch_directionR:
+	;get left paddle row
+	LDR r3, ptr_to_currRowR
+	LDRB r4, [r3]
+	LDR r5, ptr_to_ballRow
+	LDRB r6, [r5]
+
+	MOV r7, #3
+right_loop:
+	CMP r4, r6
+	BEQ hit_paddle
+	SUB r6, r6, #1
+	SUB r7, r7, #1
+	CMP r7, #0
+	BGT right_loop
+
+	;hit wall
+	;disappear + incr score
+	ldr r0, ptr_to_ballDisappear
+	bl output_string
+
+	;reset the ball location in memory
+	LDR r5, ptr_to_ballCol ;0x28 - 40
+	MOV r6, #0x28
+	STRB r6, [r5]
+	LDR r5, ptr_to_ballRow ;0xE - 14
+	MOV r6, #0xE
+	STRB r6, [r5]
+	;move the ball back to center
+	ldr r0, ptr_to_ball
+	BL output_string
+
+	B skip
 
 skip: ;determine ball direction for movement
 	LDR r2, ptr_to_ballDirection
@@ -488,7 +582,7 @@ skip: ;determine ball direction for movement
 	;decr col by 1
 	SUB r11, r11, #1
 	STRB r11, [r10]
-	B end
+	B timer_end
 
 right:
 	;redraw ball 1 right using cursor
@@ -502,7 +596,7 @@ right:
 	ADD r11, r11, #1
 	STRB r11, [r10]
 
-end:
+timer_end:
 	POP {r4-r12,lr} ; Restore registers from stack
 	BX lr       	; Return
 
