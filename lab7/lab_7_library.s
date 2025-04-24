@@ -18,6 +18,10 @@ lookUpTable9: .string 27, "[D", 27, "[B", 27, "[42m ", 27, "[4A", 27, "[D", 27, 
 lookUpTableA: .string 27, "[14;40H", 27, "[47m", 0x81
 lookUpTableB: .string 27, "[D", 27, "[40m ", 27, "[47m ", 0x81 ;right 1
 lookUpTableC: .string 27, "[40m ", 27, "[2D", 27, "[47m ", 0x81 ;left 1
+lookUpTableD: .string 27, "[D", 27, "[40m ", 27, "[2D", 27, "[47m ", 0x81 ;turnRtoL
+lookUpTableE: .string 27, "[D", 27, "[40m ", 27,  "[40m ", 27, "[2D",  27, "[47m ", 27, "[C", 0x81
+;lookUpTableF: .string 27, "[D", 27, "[40m ", 27, "[47m ", 0x81 ;left 1 up 1
+;lookUpTable10: .string 27, "[40m ", 27, "[2D", 27, "[47m ", 0x81 ;left 1 down
 
 cursorMoveStrL: .string 27, "[xx;3H", 0, 0
 cursorMoveStrL1Digit: .string 27, "[x;3H", 0, 0
@@ -53,6 +57,8 @@ cursorMoveStrR1Digit: .string 27, "[x;84H", 0, 0
 	.global lookUpTableA
 	.global lookUpTableB
 	.global lookUpTableC
+	.global lookUpTableD
+	.global lookUpTableE
 	.global currRowL
 	.global currRowR
 	.global cursorMoveStrL
@@ -72,6 +78,8 @@ ptr_to_lookUpTable9:		.word lookUpTable9
 ptr_to_lookUpTableA:		.word lookUpTableA
 ptr_to_lookUpTableB:		.word lookUpTableB
 ptr_to_lookUpTableC:		.word lookUpTableC
+ptr_to_lookUpTableD:		.word lookUpTableD
+ptr_to_lookUpTableE:		.word lookUpTableE
 ptr_to_currRowL:			.word currRowL
 ptr_to_currRowR:			.word currRowR
 ptr_to_cursorMoveStrL:		.word cursorMoveStrL
@@ -336,6 +344,10 @@ output_ansi_label:
 	BEQ ltb
 	CMP r4, #0xC
 	BEQ ltc
+	CMP r4, #0xD
+	BEQ ltd
+	CMP r4, #0xE
+	BEQ lte
 
 ;load the correct pointer by case into r9
 lt2: LDR r9, ptr_to_lookUpTable2
@@ -410,6 +422,10 @@ lta: LDR r9, ptr_to_lookUpTableA
 ltb: LDR r9, ptr_to_lookUpTableB
 	 B outAnsiloop ;jump to main loop to print remaining chars
 ltc: LDR r9, ptr_to_lookUpTableC
+	 B outAnsiloop ;jump to main loop to print remaining chars
+ltd: LDR r9, ptr_to_lookUpTableD
+	 B outAnsiloop ;jump to main loop to print remaining chars
+lte: LDR r9, ptr_to_lookUpTableE
 	 B outAnsiloop ;jump to main loop to print remaining chars
 
 ;proceed with rest of ansi string until reach 0x81

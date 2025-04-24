@@ -25,6 +25,8 @@ rightPaddleDownOne: .string 0x89, 0
 ball: .string 0x8A, " ", 0
 ballRight: .string 0x8B, 0
 ballLeft: .string 0x8C, 0
+ballTurnRToL: .string 0x8D, 0
+ballTurnLToR: .string 0x8E, 0
 ballCursorMove: .string 27, "[14;xxH", 0, 0
 ballCursorMove1Digit: .string 27, "[14;xH", 0, 0
 ballDisappear: .string 0x83, " ", 27, "[2D", 0x83, " ", 0, 0
@@ -86,6 +88,8 @@ ptr_to_ball:				.word ball
 ptr_to_ballDirection:		.word ballDirection
 ptr_to_ballRight:			.word ballRight
 ptr_to_ballLeft:			.word ballLeft
+ptr_to_ballTurnRToL:		.word ballTurnRToL
+ptr_to_ballTurnLToR:		.word ballTurnLToR
 ptr_to_ballCol:				.word ballCol
 ptr_to_ballRow:				.word ballRow
 ptr_to_ballCursorMove:		.word ballCursorMove
@@ -304,8 +308,8 @@ timer_init:
 
 	MOV r0, #0x0000
 	MOVT r0, #0x4003		;address of GPTMTAILR
-	MOV r1, #0x1200
-	MOVT r1, #0x007A
+	MOV r1, #0x2356			;30 FPS = 16 mil / 30
+	MOVT r1, #0x0008		;which is 0x82356 in hex
 	STR r1, [r0, #0x28]
 
 	MOV r0, #0x0000
@@ -428,17 +432,17 @@ Timer_Handler:
 	ORR r1, #0x1			;set 0th bit to 1
 	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
 
-	ldr r0, ptr_to_clearCenter
-	BL output_string
-
-	;check if board drawn if yes exit
+	;check if board drawn if no exit
 	LDR r7, ptr_to_boardDone
 	LDRB r8, [r7]
 	CMP r8, #1
 	BEQ timer_end
 
-	;move cursor to ball location
+	ldr r0, ptr_to_clearCenter
+	BL output_string
 
+	;move cursor to ball location
+moveCursorBall:
 	LDR r10, ptr_to_ballCursorMove
 	;now store this inside the ansi sequence manually in memory
 	;int2string to print it correctly
@@ -481,9 +485,9 @@ one_digit:
 ballCursorDone:
 
 	;if at a wall switch directions (col in r11)
-	CMP r11, #3
+	CMP r11, #2
 	BEQ switch_directionL
-	CMP r11, #82
+	CMP r11, #83
 	BEQ switch_directionR
 	B skip
 
@@ -497,7 +501,7 @@ switch_directionL:
 	MOV r7, #3
 left_loop:
 	CMP r4, r6
-	BEQ hit_paddle
+	BEQ hit_paddleL
 	SUB r6, r6, #1
 	SUB r7, r7, #1
 	CMP r7, #0
@@ -523,12 +527,22 @@ left_loop:
 
 	B skip
 
-hit_paddle:
+hit_paddleL:
 	LDR r2, ptr_to_ballDirection
 	LDRB r3, [r2]
 	MVN r4, r3 ;get the negative
 	AND r4, r4, #1 ;isolate 0th bit
 	STRB r4, [r2] ;store it back (set direction)
+
+	B skip
+
+hit_paddleR:
+	LDR r2, ptr_to_ballDirection
+	LDRB r3, [r2]
+	MVN r4, r3 ;get the negative
+	AND r4, r4, #1 ;isolate 0th bit
+	STRB r4, [r2] ;store it back (set direction)
+
 	B skip
 
 switch_directionR:
@@ -541,7 +555,7 @@ switch_directionR:
 	MOV r7, #3
 right_loop:
 	CMP r4, r6
-	BEQ hit_paddle
+	BEQ hit_paddleR
 	SUB r6, r6, #1
 	SUB r7, r7, #1
 	CMP r7, #0
@@ -572,12 +586,31 @@ skip: ;determine ball direction for movement
 	BEQ right
 
 	;left
-	;redraw ball 1 left using cursor
+	CMP r11, #83
+	BEQ turnRToL
+	CMP r11, #3
+	BEQ turnLToR
+
+	;(normal) redraw ball 1 left using cursor
 	ldr r0, ptr_to_ballLeft
 	BL output_string
+	B moveDone
 
+turnRToL:
+	;if the ball was at the end/paddle
+	LDR r0, ptr_to_ballTurnRToL
+	BL output_string
+	B moveDone
+
+turnLToR:
+	;if the ball was at the end/paddle
+	LDR r0, ptr_to_ballTurnLToR
+	BL output_string
+	B moveDone
+
+moveDone:
 	;decr column
-	LDR r10, ptr_to_ballCol ;decrement row by 1
+	LDR r10, ptr_to_ballCol
 	LDRB r11, [r10]
 	;decr col by 1
 	SUB r11, r11, #1
@@ -590,7 +623,7 @@ right:
 	BL output_string
 
 	;incr column
-	LDR r10, ptr_to_ballCol ;decrement row by 1
+	LDR r10, ptr_to_ballCol
 	LDRB r11, [r10]
 	;increment col by 1
 	ADD r11, r11, #1
