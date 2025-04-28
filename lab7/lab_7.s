@@ -10,10 +10,12 @@
 	.global currRowR
 	.global pointLeft
 	.global pointRight
+	.global scorePromptL
+	.global scorePromptR
 
 ;any character over 80 is an ansi escapre sequence (see library for definitions)
 ;this is the main game board
-clearScreen: .string 0x83, 27, "[2J", 27, "[0;0H", 0
+clearScreen: .string 0x83, 27, "[2J", 27, "[0;0H", 27, "[?25l", 0
 promptTop:	.string 0xA, 0xD, 0x82, "                                                                                    ", 0
 promptMiddle: .string 0xA, 0xD, 0x82, " ", 0x83, "                                                                                  ", 0x82, " ", 0
 ;these are the paddles as a whole
@@ -36,6 +38,8 @@ ballDisappearR: .string 0x83, " ", 27, "[2D", 0x83, " ", 0, 0
 clearCenter:	.string 27, "[14;40H", 0x83, " ", 0, 0
 pointLeft: 		.byte 0x00
 pointRight: 	.byte 0x00
+scorePromptL:	.string 27, "[0;0H", "Player 1 Score:   ", 0, 0
+scorePromptR:	.string 27, "[1;68H", "Player 2 Score:   ", 0, 0
 
 ballCol: .byte 0x28 ;40
 ballRow: .byte 0xE ;14
@@ -50,8 +54,7 @@ isitpaused: .byte 0x00
 xPosition: .word 0x20000106
 gameEnd: .byte 0x00
 gameOverScreen:	.string 0xC, "GAME OVER", 0
-scorePrompt:	.string "Score: ", 0
-score:	.byte 0x0
+
 
 
 			; The .byte assembler directive stores a byte
@@ -107,6 +110,8 @@ ptr_to_ballDisappearR:	.word ballDisappearR
 ptr_to_clearCenter:		.word clearCenter
 ptr_to_pointLeft: 		.word pointLeft
 ptr_to_pointRight: 		.word pointRight
+ptr_to_scorePromptL:	.word scorePromptL
+ptr_to_scorePromptR:	.word scorePromptR
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -116,8 +121,7 @@ ptr_to_unpauseprompt: 	.word unpauseprompt
 ptr_to_xPosition:		.word xPosition
 ptr_to_gameEnd:			.word gameEnd
 ptr_to_gameOverScreen:	.word gameOverScreen
-ptr_to_scorePrompt:		.word scorePrompt
-ptr_to_score:			.word score
+
 
 
 lab7:				; This is your main routine which is called from
@@ -142,6 +146,11 @@ begin:
 	bl timer_init
 
 	ldr r0, ptr_to_clearScreen
+	bl output_string
+
+	ldr r0, ptr_to_scorePromptL
+	bl output_string
+	ldr r0, ptr_to_scorePromptR
 	bl output_string
 
 ;nested for loop to print board
@@ -506,11 +515,11 @@ switch_directionL:
 	LDR r5, ptr_to_ballRow
 	LDRB r6, [r5]
 
-	MOV r7, #3
+	MOV r7, #4
 left_loop:
 	CMP r4, r6
 	BEQ hit_paddleL
-	SUB r6, r6, #1
+	ADD r4, r4, #1
 	SUB r7, r7, #1
 	CMP r7, #0
 	BGT left_loop
@@ -525,6 +534,14 @@ left_loop:
  	LDRB r6, [r5]
  	ADD r6, r6, #1 ;incr score
 	STRB r6, [r5]
+	;print the updated score
+	LDR r7, ptr_to_scorePromptR
+	MOV r1, r6 ;integer in r1
+	ADD r7, r7, #23 ;incr to after the text is done
+	MOV r0, r7 ;address in r0
+	BL int2string
+	LDR r0, ptr_to_scorePromptR
+	BL output_string
 
 	;reset the ball location in memory
 	LDR r5, ptr_to_ballCol ;0x28 - 40
@@ -565,11 +582,11 @@ switch_directionR:
 	LDR r5, ptr_to_ballRow
 	LDRB r6, [r5]
 
-	MOV r7, #3
+	MOV r7, #4
 right_loop:
 	CMP r4, r6
 	BEQ hit_paddleR
-	SUB r6, r6, #1
+	ADD r4, r4, #1
 	SUB r7, r7, #1
 	CMP r7, #0
 	BGT right_loop
@@ -583,6 +600,14 @@ right_loop:
  	LDRB r6, [r5]
  	ADD r6, r6, #1 ;incr score
 	STRB r6, [r5]
+	;print the updated score
+	LDR r7, ptr_to_scorePromptL
+	MOV r1, r6 ;integer in r1
+	ADD r7, r7, #22 ;incr to after the text is done
+	MOV r0, r7 ;address in r0
+	BL int2string
+	LDR r0, ptr_to_scorePromptL
+	BL output_string
 
 	;reset the ball location in memory
 	LDR r5, ptr_to_ballCol ;0x28 - 40
@@ -628,11 +653,11 @@ turnLToR:
 	LDR r5, ptr_to_ballRow
 	LDRB r6, [r5]
 
-	MOV r7, #3
+	MOV r7, #4
 left_loop2:
 	CMP r4, r6
 	BEQ hit_paddleL2
-	SUB r6, r6, #1
+	ADD r4, r4, #1
 	SUB r7, r7, #1
 	CMP r7, #0
 	BGT left_loop2
@@ -678,6 +703,11 @@ moveDone:
 	B timer_end
 
 right:
+	LDR r10, ptr_to_ballCol
+	LDRB r11, [r10]
+	CMP r11, #3
+	BEQ turnLToR
+
 	;redraw ball 1 right using cursor
 	ldr r0, ptr_to_ballRight
 	BL output_string
