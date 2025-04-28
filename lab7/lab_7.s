@@ -8,6 +8,8 @@
 	.global gameEnd
 	.global currRowL
 	.global currRowR
+	.global pointLeft
+	.global pointRight
 
 ;any character over 80 is an ansi escapre sequence (see library for definitions)
 ;this is the main game board
@@ -29,8 +31,11 @@ ballTurnRToL: .string 0x8D, 0
 ballTurnLToR: .string 0x8E, 0
 ballCursorMove: .string 27, "[14;xxH", 0, 0
 ballCursorMove1Digit: .string 27, "[14;xH", 0, 0
-ballDisappear: .string 0x83, " ", 27, "[2D", 0x83, " ", 0, 0
+ballDisappearL: .string 0x83, " ", 27, "[D", 0x83, " ", 0, 0
+ballDisappearR: .string 0x83, " ", 27, "[2D", 0x83, " ", 0, 0
 clearCenter:	.string 27, "[14;40H", 0x83, " ", 0, 0
+pointLeft: 		.byte 0x00
+pointRight: 	.byte 0x00
 
 ballCol: .byte 0x28 ;40
 ballRow: .byte 0xE ;14
@@ -97,8 +102,11 @@ ptr_to_ballCursorMove1Digit: .word ballCursorMove1Digit
 ptr_to_currRowL:		.word currRowL
 ptr_to_currRowR:		.word currRowR
 ptr_to_boardDone:		.word boardDone
-ptr_to_ballDisappear:	.word ballDisappear
+ptr_to_ballDisappearL:	.word ballDisappearL
+ptr_to_ballDisappearR:	.word ballDisappearR
 ptr_to_clearCenter:		.word clearCenter
+ptr_to_pointLeft: 		.word pointLeft
+ptr_to_pointRight: 		.word pointRight
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -476,7 +484,7 @@ one_digit:
 	BL int2string
 
 	;need to manually write the ; 0x3b bc int2string nul terminates it
-	MOV r2, #0x48
+	MOV r2, #0x3B
 	STRB r2, [r10, #1] ;offset 1 is right after the x
 
 	LDR r0, ptr_to_ballCursorMove
@@ -509,8 +517,14 @@ left_loop:
 
 	;hit wall
 	;disappear + incr score
-	ldr r0, ptr_to_ballDisappear
+	ldr r0, ptr_to_ballDisappearL
 	bl output_string
+
+	;incr score
+	LDR r5, ptr_to_pointRight ;if ball hit left wall, right player gets pt
+ 	LDRB r6, [r5]
+ 	ADD r6, r6, #1 ;incr score
+	STRB r6, [r5]
 
 	;reset the ball location in memory
 	LDR r5, ptr_to_ballCol ;0x28 - 40
@@ -523,7 +537,6 @@ left_loop:
 	;move the ball back to center
 	ldr r0, ptr_to_ball
 	BL output_string
-
 
 	B skip
 
@@ -563,8 +576,13 @@ right_loop:
 
 	;hit wall
 	;disappear + incr score
-	ldr r0, ptr_to_ballDisappear
+	ldr r0, ptr_to_ballDisappearR
 	bl output_string
+
+	LDR r5, ptr_to_pointLeft ;if ball hit right wall, left player gets pt
+ 	LDRB r6, [r5]
+ 	ADD r6, r6, #1 ;incr score
+	STRB r6, [r5]
 
 	;reset the ball location in memory
 	LDR r5, ptr_to_ballCol ;0x28 - 40
@@ -603,10 +621,52 @@ turnRToL:
 	B moveDone
 
 turnLToR:
+	;special logic for if ball goes left to wall not paddle
+	;get left paddle row + ball row
+	LDR r3, ptr_to_currRowL
+	LDRB r4, [r3]
+	LDR r5, ptr_to_ballRow
+	LDRB r6, [r5]
+
+	MOV r7, #3
+left_loop2:
+	CMP r4, r6
+	BEQ hit_paddleL2
+	SUB r6, r6, #1
+	SUB r7, r7, #1
+	CMP r7, #0
+	BGT left_loop2
+
+	;else left 1
+	ldr r0, ptr_to_ballLeft
+	BL output_string
+	B moveDone
+
+	B timer_end
+
+
+hit_paddleL2:
 	;if the ball was at the end/paddle
 	LDR r0, ptr_to_ballTurnLToR
 	BL output_string
-	B moveDone
+
+	;set the ball location in memory
+	LDR r5, ptr_to_ballCol ;0x4
+	MOV r6, #0x4
+	STRB r6, [r5]
+	;LDR r5, ptr_to_ballRow ;0xE - 14
+	;MOV r6, #0xE
+	;STRB r6, [r5]
+
+	;ball direction
+	LDR r2, ptr_to_ballDirection
+	LDRB r3, [r2]
+	MVN r4, r3 ;get the negative
+	AND r4, r4, #1 ;isolate 0th bit
+	STRB r4, [r2] ;store it back (set direction)
+
+
+	B timer_end
 
 moveDone:
 	;decr column

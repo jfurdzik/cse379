@@ -19,7 +19,7 @@ lookUpTableA: .string 27, "[14;40H", 27, "[47m", 0x81
 lookUpTableB: .string 27, "[D", 27, "[40m ", 27, "[47m ", 0x81 ;right 1
 lookUpTableC: .string 27, "[40m ", 27, "[2D", 27, "[47m ", 0x81 ;left 1
 lookUpTableD: .string 27, "[D", 27, "[40m ", 27, "[2D", 27, "[47m ", 0x81 ;turnRtoL
-lookUpTableE: .string 27, "[D", 27, "[40m ", 27,  "[40m ", 27, "[2D",  27, "[47m ", 27, "[C", 0x81
+lookUpTableE: .string 27, "[40m ", 27, "[47m ", 0x81
 ;lookUpTableF: .string 27, "[D", 27, "[40m ", 27, "[47m ", 0x81 ;left 1 up 1
 ;lookUpTable10: .string 27, "[40m ", 27, "[2D", 27, "[47m ", 0x81 ;left 1 down
 
