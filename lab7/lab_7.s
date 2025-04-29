@@ -40,6 +40,8 @@ pointLeft: 		.byte 0x00
 pointRight: 	.byte 0x00
 scorePromptL:	.string 27, "[0;0H", "Player 1 Score:   ", 0, 0
 scorePromptR:	.string 27, "[1;68H", "Player 2 Score:   ", 0, 0
+gameTimer:		.string 27, "[40;37m", 27, "[1;38H", "Time:   ", 0, 0
+timeCount:		.byte 0x00
 
 ballCol: .byte 0x28 ;40
 ballRow: .byte 0xE ;14
@@ -79,6 +81,7 @@ gameOverScreen:	.string 0xC, "GAME OVER", 0
 	.global UART0_Handler
 	.global Switch_Handler
 	.global Timer_Handler		; This is needed for Lab #6
+	.global Timer_Handler2
 	.global simple_read_character	; read_character modified for interrupts
 	.global output_character	; This is from your Lab #4 Library
 	.global output_ansi
@@ -122,6 +125,8 @@ ptr_to_pointLeft: 		.word pointLeft
 ptr_to_pointRight: 		.word pointRight
 ptr_to_scorePromptL:	.word scorePromptL
 ptr_to_scorePromptR:	.word scorePromptR
+ptr_to_gameTimer:		.word gameTimer
+ptr_to_timeCount:		.word timeCount
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -162,6 +167,7 @@ begin:
 	bl uart_interrupt_init ;this is fine, interrupt handler no BL
 	bl gpio_interrupt_init
 	bl timer_init
+	bl timer_init2
 
 	ldr r0, ptr_to_clearScreen
 	bl output_string
@@ -169,6 +175,8 @@ begin:
 	ldr r0, ptr_to_scorePromptL
 	bl output_string
 	ldr r0, ptr_to_scorePromptR
+	bl output_string
+	ldr r0, ptr_to_gameTimer
 	bl output_string
 
 ;nested for loop to print board
@@ -867,5 +875,90 @@ simple_read_character:
 				; PUSH at the top of this routine from the stack.
 	MOV pc, lr
 
+timer_init2:
+	PUSH {r4-r12,lr} ; Spill registers to stack
+
+	MOV r0, #0xE000
+	MOVT r0, #0x400F	;base address of RCGCTIMER
+	LDRB r1, [r0, #0x604]	;read from address + offset
+	ORR r1, r1, #0x2		;set bit 0 to 1
+	STRB r1, [r0, #0x604]
+
+	MOV r0, #0x1000
+	MOVT r0, #0x4003		;address of GPTMCTL
+	LDRB r1, [r0, #0x00C]	;read from address + offset
+	AND r1, r1, #0xFE		;0xFE = 1111 1110, so we are only changing the 0th bit to 0
+	STRB r1, [r0, #0x00C]
+
+	MOV r0, #0x1000
+	MOVT r0, #0x4003		;address of GPTMCFG
+	LDRB r1, [r0, #0x000]	;read from address + offset
+	AND r1, r1, #0
+	STRB r1, [r0, #0x000]
+
+	MOV r0, #0x1000
+	MOVT r0, #0x4003		;address of GPTMTAMR
+	LDRB r1, [r0, #0x004]	;read from address + offset
+	AND r1, r1, #0xFE		;change the 0th bit to 0
+	ORR r1, r1, #0x2		;set 1st bit to 1 (10)
+	STRB r1, [r0, #0x004]
+
+	MOV r0, #0x1000
+	MOVT r0, #0x4003		;address of GPTMTAILR
+	MOV r1, #0x2400			;1 FPS = 16 mil / 1
+	MOVT r1, #0x00F4		;which is 0xF42400 in hex
+	STR r1, [r0, #0x28]
+
+	MOV r0, #0x1000
+	MOVT r0, #0x4003		;address of GPTMIMR
+	LDRB r1, [r0, #0x018]	;read from address + offset
+	ORR r1, r1, #0x1		;set 0th bit to 1
+	STRB r1, [r0, #0x018]
+
+	MOV r0, #0xE000
+	MOVT r0, #0xE000 		;r0 = 0xE000E000 (EN0 base addr)
+	MOV r1, #1
+	LSL r1, r1, #21 		;shift it 21 bits (pin 21)
+	LDR r2, [r0, #0x100]
+	ORR r1, r1, r2 			;set only that but, put in r1
+	STR r1, [r0, #0x100] 	;EN0 offset
+
+	MOV r0, #0x1000
+	MOVT r0, #0x4003		;address of GPTMCTL
+	LDRB r1, [r0, #0x00C]	;read from address + offset
+	ORR r1, #0x1			;set 0th bit to 1
+	STRB r1, [r0, #0x00C]	;enable TAEN
+
+
+	POP {r4-r12,lr} ; Restore registers from stack
+	MOV pc, lr
+
+Timer_Handler2:
+	PUSH {r4-r12,lr} ; Spill registers to stack
+
+	;clear interrupt via GPTMICR
+	MOV r0, #0x1000			;base address of timer 0
+	MOVT r0, #0x4003		;address of GPTMICR
+	LDRB r1, [r0, #0x024]	;read from address + offset
+	ORR r1, #0x1			;set 0th bit to 1
+	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
+
+	;game timer
+	LDR r5, ptr_to_timeCount
+ 	LDRB r6, [r5]
+ 	ADD r6, r6, #1 ;incr time
+	STRB r6, [r5]
+
+	;print the updated time
+	LDR r7, ptr_to_gameTimer
+	MOV r1, r6 ;integer in r1
+	ADD r7, r7, #20 ;incr to after the text is done
+	MOV r0, r7 ;address in r0
+	BL int2string
+	LDR r0, ptr_to_gameTimer
+	BL output_string
+
+	POP {r4-r12,lr} ; Restore registers from stack
+	BX lr       	; Return
 
 	.end
