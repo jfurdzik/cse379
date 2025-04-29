@@ -12,6 +12,7 @@
 	.global pointRight
 	.global scorePromptL
 	.global scorePromptR
+	.global winningScore
 
 ;any character over 80 is an ansi escapre sequence (see library for definitions)
 ;this is the main game board
@@ -42,6 +43,8 @@ scorePromptL:	.string 27, "[0;0H", "Player 1 Score:   ", 0, 0
 scorePromptR:	.string 27, "[1;68H", "Player 2 Score:   ", 0, 0
 gameTimer:		.string 27, "[40;37m", 27, "[1;38H", "Time:   ", 0, 0
 timeCount:		.byte 0x00
+whoWon: 		.byte 0x00 ;1=player 1 won, 2 = player 2 won
+winningScore:	.byte 0x00
 
 ballCol: .byte 0x28 ;40
 ballRow: .byte 0xE ;14
@@ -57,6 +60,9 @@ fps4:	.word 0x0004E200	;50 FPS
 fps5: 	.word 0x0004705E	;55 FPS
 fps6:	.word 0x000411AB	;60 FPS
 
+gameOverScreenLeft:	.string 27, "[10;12H", "GAME OVER. Player 1 (Left) won. Press space bar to play again or Q to quit.", 0
+gameOverScreenRight: .string 27, "[10;12H", "GAME OVER. Player 2 (Right) won. Press space bar to play again or Q to quit.", 0
+winPointsMenu:		.string 27, "[10;12H", "Press switch buttons on the Alice Board to select winning score. SW5 = 7 pts, SW4 = 9 pts, SW3 = 11 pts, SW2 = unlimited.", 0
 
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
 mydataUART:	.byte	0x20	; This is where you can store data.
@@ -65,7 +71,7 @@ xCount: .byte 0x1
 isitpaused: .byte 0x00
 xPosition: .word 0x20000106
 gameEnd: .byte 0x00
-gameOverScreen:	.string 0xC, "GAME OVER", 0
+
 
 
 
@@ -90,6 +96,7 @@ gameOverScreen:	.string 0xC, "GAME OVER", 0
 	.global uart_init		; This is from your Lab #4 Library
 	.global illuminate_RGB_LED
 	.global read_tiva_pushbutton
+	.global read_from_push_btns
 	.global gpio_btn_and_LED_init
 	.global lab7
 	.global string2int
@@ -127,6 +134,8 @@ ptr_to_scorePromptL:	.word scorePromptL
 ptr_to_scorePromptR:	.word scorePromptR
 ptr_to_gameTimer:		.word gameTimer
 ptr_to_timeCount:		.word timeCount
+ptr_to_winningScore:	.word winningScore
+ptr_to_winPointsMenu:	.word winPointsMenu
 
 ptr_to_mydataUART:		.word mydataUART
 ptr_to_mydataGPIO:		.word mydataGPIO
@@ -135,7 +144,9 @@ ptr_to_isitpaused: 		.word isitpaused
 ptr_to_unpauseprompt: 	.word unpauseprompt
 ptr_to_xPosition:		.word xPosition
 ptr_to_gameEnd:			.word gameEnd
-ptr_to_gameOverScreen:	.word gameOverScreen
+ptr_to_whoWon:			.word whoWon
+ptr_to_gameOverScreenLeft: 		.word gameOverScreenLeft
+ptr_to_gameOverScreenRight: 	.word gameOverScreenRight
 
 ptr_to_curFPS:			.word curFPS
 ptr_to_fps0:			.word fps0
@@ -169,6 +180,58 @@ begin:
 	bl timer_init
 	bl timer_init2
 
+	ldr r0, ptr_to_clearScreen
+	bl output_string
+
+	ldr r0, ptr_to_winPointsMenu
+	bl output_string
+	MOV r0, #0
+
+repeat_push_btns:
+	bl read_from_push_btns ;returned in r0
+	;r0 = 0x1 if sw5 = 7 pts
+	CMP r0, #0x1
+	BEQ sw5
+	;r0 = 0x2 if sw4 = 9 pts
+	CMP r0, #0x2
+	BEQ sw4
+	;r0 = 0x4 if sw3 = 11 pts
+	CMP r0, #0x4
+	BEQ sw3
+	;r0 = 0x8 if sw2 = unlimited
+	CMP r0, #0x8
+	BEQ sw2
+	CMP r0, #0
+	BEQ repeat_push_btns
+
+	B rest
+
+sw5:
+	;7 pts
+	LDR r2, ptr_to_winningScore
+	MOV r3, #7
+	STRB r3, [r2]
+	B rest
+sw4:
+	;9 pts
+	LDR r2, ptr_to_winningScore
+	MOV r3, #9
+	STRB r3, [r2]
+	B rest
+sw3:
+	;11 pts
+	LDR r2, ptr_to_winningScore
+	MOV r3, #11
+	STRB r3, [r2]
+	B rest
+sw2:
+	;unlimited
+	LDR r2, ptr_to_winningScore
+	MOV r3, #0xFF
+	STRB r3, [r2]
+	B rest
+
+rest:
 	ldr r0, ptr_to_clearScreen
 	bl output_string
 
@@ -475,6 +538,11 @@ Timer_Handler:
 	ORR r1, #0x1			;set 0th bit to 1
 	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
 
+	ldr r4, ptr_to_whoWon
+	ldrb r5, [r4]
+	CMP r5, #0
+	BNE timer_end
+
 	;check if board drawn if no exit
 	LDR r7, ptr_to_boardDone
 	LDRB r8, [r7]
@@ -558,6 +626,22 @@ left_loop:
 	;incr score
 	LDR r5, ptr_to_pointRight ;if ball hit left wall, right player gets pt
  	LDRB r6, [r5]
+
+	;check if hit max winning score
+ 	LDR r10, ptr_to_winningScore
+	LDRB r9, [r10]
+	SUB r9, r9, #1
+	CMP r6, r9
+	BEQ rightPointWin
+	B skipRPt
+
+rightPointWin:
+	LDR r10, ptr_to_whoWon
+	MOV r11, #2
+	strb r11, [r10]			;player 2 (right side) won
+	B endGame
+	;---------------------------------------------------------------
+skipRPt:
  	ADD r6, r6, #1 ;incr score
 	STRB r6, [r5]
 	;print the updated score
@@ -731,7 +815,23 @@ right_loop:
 	bl output_string
 
 	LDR r5, ptr_to_pointLeft ;if ball hit right wall, left player gets pt
- 	LDRB r6, [r5]
+	LDRB r6, [r5]
+	;---------------------------------------------------------------
+	;check if the score hit the max point score
+	LDR r10, ptr_to_winningScore
+	LDRB r9, [r10]
+	SUB r9, r9, #1
+	CMP r6, r9
+	BEQ leftPointWin
+	B skipLPt
+
+leftPointWin:
+	LDR r10, ptr_to_whoWon
+	MOV r11, #1
+	strb r11, [r10]			;player 1 (left side) won
+	B endGame
+	;---------------------------------------------------------------
+skipLPt:
  	ADD r6, r6, #1 ;incr score
 	STRB r6, [r5]
 	;print the updated score
@@ -803,7 +903,6 @@ left_loop2:
 
 	B timer_end
 
-
 hit_paddleL2:
 	;if the ball was at the end/paddle
 	LDR r0, ptr_to_ballTurnLToR
@@ -823,7 +922,6 @@ hit_paddleL2:
 	MVN r4, r3 ;get the negative
 	AND r4, r4, #1 ;isolate 0th bit
 	STRB r4, [r2] ;store it back (set direction)
-
 
 	B timer_end
 
@@ -852,6 +950,24 @@ right:
 	;increment col by 1
 	ADD r11, r11, #1
 	STRB r11, [r10]
+	B timer_end
+
+endGame:
+	ldr r0, ptr_to_clearScreen
+	bl output_string
+
+	ldr r4, ptr_to_whoWon
+	LDRB r5, [r4]
+	CMP r5, #1
+	BEQ leftWon
+	;if reached here then right side won
+	ldr r0, ptr_to_gameOverScreenRight
+	bl output_string
+	b timer_end
+
+leftWon:
+	ldr r0, ptr_to_gameOverScreenLeft
+	bl output_string
 
 timer_end:
 	POP {r4-r12,lr} ; Restore registers from stack
@@ -943,6 +1059,11 @@ Timer_Handler2:
 	ORR r1, #0x1			;set 0th bit to 1
 	STRB r1, [r0, #0x024]	;write 1 to TATOCINT
 
+	ldr r9, ptr_to_whoWon
+	LDRB r10, [r9]
+	CMP r10, #0
+	BNE timerSkip
+
 	;game timer
 	LDR r5, ptr_to_timeCount
  	LDRB r6, [r5]
@@ -958,6 +1079,7 @@ Timer_Handler2:
 	LDR r0, ptr_to_gameTimer
 	BL output_string
 
+timerSkip:
 	POP {r4-r12,lr} ; Restore registers from stack
 	BX lr       	; Return
 
