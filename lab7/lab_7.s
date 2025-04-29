@@ -46,6 +46,16 @@ ballRow: .byte 0xE ;14
 ballDirection: .byte 0x00 ;0 = left, 1 = right
 boardDone:		.byte 0x01
 
+curFPS: .byte 0x0	;0 = stage 0 (FPS=30), 1 = stage 1(FPS=35), 2 = ..., 6 = stage 6(FPS = 60)
+fps0: 	.word 0x00082356	;30 FPS
+fps1:	.word 0x0006F9B7	;35 FPS
+fps2: 	.word 0x00061A80	;40 FPS
+fps3: 	.word 0x00056CE3	;45 FPS
+fps4:	.word 0x0004E200	;50 FPS
+fps5: 	.word 0x0004705E	;55 FPS
+fps6:	.word 0x000411AB	;60 FPS
+
+
 unpauseprompt: .string 0xA, 0xD, "The game is paused. Press SW1 on the Tiva board to unpause.", 0xA, 0xD, 0
 mydataUART:	.byte	0x20	; This is where you can store data.
 mydataGPIO:	.byte	0x30
@@ -122,6 +132,14 @@ ptr_to_xPosition:		.word xPosition
 ptr_to_gameEnd:			.word gameEnd
 ptr_to_gameOverScreen:	.word gameOverScreen
 
+ptr_to_curFPS:			.word curFPS
+ptr_to_fps0:			.word fps0
+ptr_to_fps1:			.word fps1
+ptr_to_fps2:			.word fps2
+ptr_to_fps3:			.word fps3
+ptr_to_fps4:			.word fps4
+ptr_to_fps5:			.word fps5
+ptr_to_fps6:			.word fps6
 
 
 lab7:				; This is your main routine which is called from
@@ -564,7 +582,22 @@ hit_paddleL:
 	AND r4, r4, #1 ;isolate 0th bit
 	STRB r4, [r2] ;store it back (set direction)
 
-	B skip
+	;increase fps everytime
+	LDR r5, ptr_to_curFPS
+	LDRB r6, [r5]			;check current fps stage
+	CMP r6, #0
+	BEQ FPS1				;if stage 0, go to stage 1
+	CMP r6, #1
+	BEQ FPS2
+	CMP r6, #2
+	BEQ FPS3
+	CMP r6, #3
+	BEQ FPS4
+	CMP r6, #4
+	BEQ FPS5
+	CMP r6, #5
+	BEQ FPS6
+	B skip 					;if reached this point, then the fps should already be 60
 
 hit_paddleR:
 	LDR r2, ptr_to_ballDirection
@@ -572,6 +605,99 @@ hit_paddleR:
 	MVN r4, r3 ;get the negative
 	AND r4, r4, #1 ;isolate 0th bit
 	STRB r4, [r2] ;store it back (set direction)
+
+	;increase fps everytime
+	LDR r5, ptr_to_curFPS
+	LDRB r6, [r5]			;check current fps stage
+	CMP r6, #0
+	BEQ FPS1				;if stage 0, go to stage 1
+	CMP r6, #1
+	BEQ FPS2
+	CMP r6, #2
+	BEQ FPS3
+	CMP r6, #3
+	BEQ FPS4
+	CMP r6, #4
+	BEQ FPS5
+	CMP r6, #5
+	BEQ FPS6
+	B skip 					;if reached this point, then the fps should already be 60
+
+FPS1:
+	ADD r6, r6, #1			;increment stage number
+	STRB r6, [r5]
+
+	LDR r7, ptr_to_fps1		;load the frame num from pointer
+	LDR r8, [r7]			;r8 now has the hex value of 16mil/fps
+
+	MOV r0, #0x0000
+	MOVT r0, #0x4003		;address of GPTMTAILR
+	STR r8, [r0, #0x28]		;update the fps
+
+	B skip
+
+FPS2:
+	ADD r6, r6, #1			;increment stage number
+	STRB r6, [r5]
+
+	LDR r7, ptr_to_fps2		;load the frame num from pointer
+	LDR r8, [r7]			;r8 now has the hex value of 16mil/fps
+
+	MOV r0, #0x0000
+	MOVT r0, #0x4003		;address of GPTMTAILR
+	STR r8, [r0, #0x28]		;update the fps
+
+	B skip
+
+FPS3:
+	ADD r6, r6, #1			;increment stage number
+	STRB r6, [r5]
+
+	LDR r7, ptr_to_fps3		;load the frame num from pointer
+	LDR r8, [r7]			;r8 now has the hex value of 16mil/fps
+
+	MOV r0, #0x0000
+	MOVT r0, #0x4003		;address of GPTMTAILR
+	STR r8, [r0, #0x28]		;update the fps
+
+	B skip
+
+FPS4:
+	ADD r6, r6, #1			;increment stage number
+	STRB r6, [r5]
+
+	LDR r7, ptr_to_fps4		;load the frame num from pointer
+	LDR r8, [r7]			;r8 now has the hex value of 16mil/fps
+
+	MOV r0, #0x0000
+	MOVT r0, #0x4003		;address of GPTMTAILR
+	STR r8, [r0, #0x28]		;update the fps
+
+	B skip
+
+FPS5:
+	ADD r6, r6, #1			;increment stage number
+	STRB r6, [r5]
+
+	LDR r7, ptr_to_fps5		;load the frame num from pointer
+	LDR r8, [r7]			;r8 now has the hex value of 16mil/fps
+
+	MOV r0, #0x0000
+	MOVT r0, #0x4003		;address of GPTMTAILR
+	STR r8, [r0, #0x28]		;update the fps
+
+	B skip
+
+FPS6:
+	ADD r6, r6, #1			;increment stage number
+	STRB r6, [r5]
+
+	LDR r7, ptr_to_fps6		;load the frame num from pointer
+	LDR r8, [r7]			;r8 now has the hex value of 16mil/fps
+
+	MOV r0, #0x0000
+	MOVT r0, #0x4003		;address of GPTMTAILR
+	STR r8, [r0, #0x28]		;update the fps
 
 	B skip
 
